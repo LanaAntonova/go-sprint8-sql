@@ -40,7 +40,7 @@ func (s ParcelService) Register(client int, address string) (Parcel, error) {
 
 	id, err := s.store.Add(parcel)
 	if err != nil {
-		return parcel, err
+		return parcel, fmt.Errorf("не удалось зарегистрировать посылку: %w", err)
 	}
 
 	parcel.Number = id
@@ -54,7 +54,7 @@ func (s ParcelService) Register(client int, address string) (Parcel, error) {
 func (s ParcelService) PrintClientParcels(client int) error {
 	parcels, err := s.store.GetByClient(client)
 	if err != nil {
-		return err
+		return fmt.Errorf("не удалось получить посылки клиента %d: %w", client, err)
 	}
 
 	fmt.Printf("Посылки клиента %d:\n", client)
@@ -70,7 +70,7 @@ func (s ParcelService) PrintClientParcels(client int) error {
 func (s ParcelService) NextStatus(number int) error {
 	parcel, err := s.store.Get(number)
 	if err != nil {
-		return err
+		return fmt.Errorf("не удалось получить посылку № %d: %w", number, err)
 	}
 
 	var nextStatus string
@@ -97,9 +97,15 @@ func (s ParcelService) Delete(number int) error {
 }
 
 func main() {
-	// настройте подключение к БД
+	// подключение к БД
+	db, err := sql.Open("sqlite", "tracker.db")
+	if err != nil {
+		fmt.Errorf("не удалось подключиться к БД: %w\n", err)
+		return
+	}
+	defer db.Close()
 
-	store := // создайте объект ParcelStore функцией NewParcelStore
+	store := NewParcelStore(db)
 	service := NewParcelService(store)
 
 	// регистрация посылки
@@ -107,7 +113,7 @@ func main() {
 	address := "Псков, д. Пушкина, ул. Колотушкина, д. 5"
 	p, err := service.Register(client, address)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Errorf("ошибка регистрации посылки: %w\n", err)
 		return
 	}
 
@@ -115,28 +121,28 @@ func main() {
 	newAddress := "Саратов, д. Верхние Зори, ул. Козлова, д. 25"
 	err = service.ChangeAddress(p.Number, newAddress)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Errorf("ошибка изменения адреса посылки %d: %w\n", p.Number, err)
 		return
 	}
 
 	// изменение статуса
 	err = service.NextStatus(p.Number)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Errorf("ошибка перехода к следующему статусу посылки %d: %w\n", p.Number, err)
 		return
 	}
 
 	// вывод посылок клиента
 	err = service.PrintClientParcels(client)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Errorf("ошибка вывода посылок клиента %d: %w\n", client, err)
 		return
 	}
 
 	// попытка удаления отправленной посылки
 	err = service.Delete(p.Number)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Errorf("ошибка удаления посылки %d: %w\n", p.Number, err)
 		return
 	}
 
@@ -144,21 +150,21 @@ func main() {
 	// предыдущая посылка не должна удалиться, т.к. её статус НЕ «зарегистрирована»
 	err = service.PrintClientParcels(client)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Errorf("ошибка вывода посылок клиента %d: %w\n", client, err)
 		return
 	}
 
 	// регистрация новой посылки
 	p, err = service.Register(client, address)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Errorf("ошибка регистрации новой посылки: %w\n", err)
 		return
 	}
 
 	// удаление новой посылки
 	err = service.Delete(p.Number)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Errorf("ошибка удаления новой посылки %d: %w\n", p.Number, err)
 		return
 	}
 
@@ -166,7 +172,7 @@ func main() {
 	// здесь не должно быть последней посылки, т.к. она должна была успешно удалиться
 	err = service.PrintClientParcels(client)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Errorf("ошибка вывода посылок клиента %d: %w\n", client, err)
 		return
 	}
 }
