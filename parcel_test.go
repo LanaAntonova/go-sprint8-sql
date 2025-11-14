@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"log"
 	"math/rand"
 	"testing"
 	"time"
@@ -37,8 +36,7 @@ func TestAddGetDelete(t *testing.T) {
 	// prepare
 	db, err := sql.Open("sqlite", "tracker.db")
 	if err != nil {
-		log.Printf("не удалось подключиться к БД: %v", err)
-		return
+		t.Fatalf("не удалось подключиться к БД: %v", err)
 	}
 	defer db.Close()
 
@@ -54,11 +52,7 @@ func TestAddGetDelete(t *testing.T) {
 	// get
 	storedParcel, err := store.Get(id)
 	require.NoError(t, err)
-	require.Equal(t, id, storedParcel.Number)
-	require.Equal(t, parcel.Client, storedParcel.Client)
-	require.Equal(t, parcel.Status, storedParcel.Status)
-	require.Equal(t, parcel.Address, storedParcel.Address)
-	require.Equal(t, parcel.CreatedAt, storedParcel.CreatedAt)
+	require.Equal(t, parcel, storedParcel)
 
 	// delete
 	err = store.Delete(id)
@@ -73,8 +67,7 @@ func TestSetAddress(t *testing.T) {
 	// prepare
 	db, err := sql.Open("sqlite", "tracker.db")
 	if err != nil {
-		log.Printf("не удалось подключиться к БД: %v", err)
-		return
+		t.Fatalf("не удалось подключиться к БД: %v", err)
 	}
 	defer db.Close()
 
@@ -103,8 +96,7 @@ func TestSetStatus(t *testing.T) {
 	// prepare
 	db, err := sql.Open("sqlite", "tracker.db")
 	if err != nil {
-		log.Printf("не удалось подключиться к БД: %v", err)
-		return
+		t.Fatalf("не удалось подключиться к БД: %v", err)
 	}
 	defer db.Close()
 
@@ -133,8 +125,7 @@ func TestGetByClient(t *testing.T) {
 	// prepare
 	db, err := sql.Open("sqlite", "tracker.db")
 	if err != nil {
-		log.Printf("не удалось подключиться к БД: %v", err)
-		return
+		t.Fatalf("не удалось подключиться к БД: %v", err)
 	}
 	defer db.Close()
 
@@ -178,8 +169,6 @@ func TestGetByClient(t *testing.T) {
 		require.True(t, exists, "посылка %d не была добавлена", parcel.Number)
 
 		// проверяем поля
-		require.Equal(t, expected.Client, parcel.Client)
-		require.Equal(t, expected.Status, parcel.Status)
-		require.Equal(t, expected.Address, parcel.Address)
+		require.Equal(t, expected, parcel)
 	}
 }
